@@ -1,0 +1,13 @@
+[package]
+name = "mass-aw"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+byteorder = "1.4.3"
+winit = "0.26.0"
+glium = "0.31"
+lyon = "0.17.5"
+fastrand = "1.4.1"
