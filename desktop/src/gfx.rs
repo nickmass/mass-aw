@@ -15,19 +15,11 @@ use winit::event_loop::{EventLoop, EventLoopProxy};
 use std::collections::HashMap;
 use std::sync::{Arc, Condvar, Mutex};
 
-use crate::shaders::*;
-use crate::video::{BlendMode, Page, Polygon};
-use crate::UserEvent;
+use engine::gfx::Gfx;
+use engine::video::{BlendMode, Page, Polygon};
 
-pub trait Gfx {
-    fn blit(&mut self, page: Page);
-    fn draw_polygon(&mut self, polygon: Polygon);
-    fn fill_page(&mut self, page: Page, color: u8);
-    fn select_page(&mut self, page: Page);
-    fn copy_page(&mut self, src: Page, dest: Page, scroll: i16);
-    fn set_palette(&mut self, palette: [(u8, u8, u8); 16]);
-    fn draw_string(&mut self, text: &'static str, color: u8, x: i16, y: i16);
-}
+use super::shaders::*;
+use super::UserEvent;
 
 struct RenderPage {
     texture: UnsignedTexture2d,
@@ -220,7 +212,7 @@ fn create_font(display: &glium::Display) -> UnsignedTexture2d {
         let y_ind = (n / 10) * 8;
 
         for y in 0..8 {
-            let mut row = crate::font::FONT[(n * 8) + y];
+            let mut row = engine::font::FONT[(n * 8) + y];
             for x in 0..8 {
                 let bit = row & 0x80 != 0;
                 row <<= 1;

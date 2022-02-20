@@ -7,21 +7,18 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
-mod error;
-mod font;
+use engine::video::Page;
+use engine::Executor;
+use engine::Input;
+
+mod directory;
 mod gfx;
 mod input;
-mod resources;
 mod shaders;
-mod strings;
-mod video;
-mod vm;
 
-use gfx::{Gfx, GlGfx};
-use input::{Input, WinitInput};
-use resources::{DirectoryIo, GamePart, Io, Resources};
-use video::{Page, Video};
-use vm::{FrameResult, Vm, Yield};
+use directory::DirectoryIo;
+use gfx::GlGfx;
+use input::WinitInput;
 
 const BYPASS_COPY_PROTECTION: bool = true;
 
@@ -71,7 +68,7 @@ fn main() {
     let input_handle = input.handle();
     let turbo_handle = input.handle();
 
-    let mut executor = Executor::new(io, gfx_handle, input_handle);
+    let mut executor = Executor::new(io, gfx_handle, input_handle, BYPASS_COPY_PROTECTION);
     let mut last_timestamp = std::time::Instant::now();
 
     std::thread::spawn(move || loop {
@@ -130,65 +127,4 @@ fn main() {
         }
         _ => (),
     });
-}
-
-struct Executor<I: Io, G: Gfx, In: Input> {
-    vm: Vm,
-    video: Video<G>,
-    resources: Resources<I>,
-    input: In,
-    frame: u64,
-}
-
-impl<I: Io, G: Gfx, In: Input> Executor<I, G, In> {
-    pub fn new(io: I, gfx: G, input: In) -> Self {
-        let video = Video::new(gfx);
-        let vm = Vm::new(BYPASS_COPY_PROTECTION);
-        let mut resources = Resources::load(io).unwrap();
-
-        if BYPASS_COPY_PROTECTION {
-            resources.prepare_part(GamePart::Two);
-        } else {
-            resources.prepare_part(GamePart::One);
-        }
-
-        Self {
-            vm,
-            video,
-            resources,
-            input,
-            frame: 0,
-        }
-    }
-
-    pub fn run(&mut self) -> u64 {
-        loop {
-            let input = self.input.get_input();
-            let res = self
-                .vm
-                .execute_frame(self.resources.bytecode().expect("bytecode loaded"), input);
-
-            match res {
-                FrameResult::Yield(Yield::Blit(ms)) => {
-                    for cmd in self.vm.video_commands() {
-                        self.video.push_command(cmd, &self.resources);
-                    }
-
-                    if ms > 0 {
-                        return ms;
-                    }
-                }
-                FrameResult::Yield(Yield::ReqResource(resource_id)) => {
-                    self.resources.load_part_or_entry(resource_id)
-                }
-                FrameResult::Complete => {
-                    self.frame += 1;
-                    if let Some(part) = self.resources.requested_part() {
-                        self.resources.prepare_part(part);
-                        self.vm.init_part();
-                    }
-                }
-            }
-        }
-    }
 }

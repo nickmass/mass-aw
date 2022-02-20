@@ -57,7 +57,7 @@ impl Vm {
         };
 
         vm.set_var(0x54, 0x81);
-        vm.set_var(vars::RANDOM_SEED, fastrand::i16(..));
+        vm.set_var(vars::RANDOM_SEED, 0x1234);
 
         if vm.bypass {
             vm.set_var(0xbc, 0x10);
